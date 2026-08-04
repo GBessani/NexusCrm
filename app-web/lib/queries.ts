@@ -35,6 +35,15 @@ export async function criarProduto(nome: string): Promise<Produto> {
   return data
 }
 
+export async function atualizarProduto(id: string, nome: string): Promise<void> {
+  const supabase = createClient()
+  const { error } = await supabase
+    .from('produtos')
+    .update({ nome: nome.trim() })
+    .eq('id', id)
+  if (error) throw error
+}
+
 export async function excluirProduto(id: string): Promise<void> {
   const supabase = createClient()
   const { error } = await supabase.from('produtos').delete().eq('id', id)

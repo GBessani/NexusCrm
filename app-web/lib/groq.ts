@@ -5,7 +5,6 @@ const MODELO = process.env.GROQ_MODEL || "openai/gpt-oss-20b";
 
 export type ProdutoParaMatch = { id: string; nome: string };
 
-// remove acentos e baixa pra comparação tolerante
 function normalizar(s: string): string {
   return s
     .normalize("NFD")
@@ -13,7 +12,6 @@ function normalizar(s: string): string {
     .toUpperCase();
 }
 
-// remove ruído repetido (cabeçalho/rodapé que aparece em toda página) e linhas vazias
 function limparTexto(texto: string): string {
   const linhas = texto
     .split("\n")
@@ -29,15 +27,16 @@ function limparTexto(texto: string): string {
     return true;
   });
 
-  return limpas.join("\n");
+  // limita o tamanho do texto que vai à IA (protege o orçamento de tokens)
+  const texto2 = limpas.join("\n");
+  return texto2.length > 6000 ? texto2.slice(0, 6000) : texto2;
 }
 
-// pré-seleção LOCAL: dentre todos os produtos, escolhe os candidatos plausíveis
-// (cujas palavras significativas aparecem no texto), pra não mandar a lista inteira à IA.
+// pré-seleção LOCAL: escolhe os candidatos plausíveis pra não mandar a lista inteira
 function preSelecionar(
   texto: string,
   produtos: ProdutoParaMatch[],
-  limite = 40
+  limite = 25
 ): ProdutoParaMatch[] {
   const textoNorm = normalizar(texto);
   const ignorar = new Set([
@@ -50,7 +49,6 @@ function preSelecionar(
       .split(/[^A-Z0-9]+/)
       .filter((w) => w.length >= 3 && !ignorar.has(w));
     if (palavras.length === 0) {
-      // nome só de palavras genéricas: usa o nome inteiro
       return { p, score: textoNorm.includes(normalizar(p.nome)) ? 1 : 0 };
     }
     let acertos = 0;
@@ -60,15 +58,11 @@ function preSelecionar(
     return { p, score: acertos / palavras.length };
   });
 
-  const candidatos = pontuados
-    .filter((x) => x.score > 0)
+  return pontuados
+    .filter((x) => x.score >= 0.5) // só candidatos com semelhança real
     .sort((a, b) => b.score - a.score)
     .slice(0, limite)
     .map((x) => x.p);
-
-  // se a pré-seleção não achar nada, manda um conjunto pequeno mesmo assim
-  // seria inútil; melhor retornar vazio e deixar a IA não ser chamada
-  return candidatos;
 }
 
 function parseIds(conteudo: string, validos: Set<string>): string[] {
@@ -91,41 +85,38 @@ export async function identificarProdutos(
   if (produtos.length === 0) return [];
 
   const texto = limparTexto(textoPDF);
-
-  // 1) pré-filtra localmente pra reduzir o tamanho do prompt (limite de tokens da IA)
   const candidatos = preSelecionar(texto, produtos);
   if (candidatos.length === 0) return [];
 
-  // 2) só os candidatos vão pra IA confirmar
+  // índice curto: manda um número no lugar do id longo (economiza tokens)
+  const porIndice = new Map<number, string>();
   const lista = candidatos
-    .map((p) => `- id: ${p.id} | nome: ${p.nome}`)
+    .map((p, i) => {
+      porIndice.set(i + 1, p.id);
+      return `${i + 1}. ${p.nome}`;
+    })
     .join("\n");
 
-  const prompt = `Você analisa o TEXTO extraído de um catálogo, nota fiscal ou "book" de produtos têxteis e diz quais produtos de uma LISTA CADASTRADA aparecem nele.
+  const prompt = `Você recebe o TEXTO extraído de um book/nota têxtil e uma LISTA numerada de produtos. Diga quais produtos da lista aparecem no texto.
 
-O texto foi extraído automaticamente de um PDF, então pode estar FRAGMENTADO e bagunçado:
-- O nome de um produto pode estar quebrado em linhas separadas. Ex.: "OXFORD" numa linha e "ESTAMPADO MESA" na seguinte formam o produto "OXFORD ESTAMPADO MESA". Junte mentalmente as partes vizinhas.
-- O nome costuma vir acompanhado de um CÓDIGO numérico (ex.: "260642"), de MEDIDAS (ex.: "1,47 L", "179 Gr/Ml") e de composição (ex.: "100% Poliéster"). IGNORE códigos, números e medidas — eles não fazem parte do nome.
-- Há ruído de cabeçalho, rodapé e slogans. Ignore.
-
-Faça a correspondência por SIGNIFICADO, não por caracteres exatos: aceite abreviações, ordem trocada, ausência de acento e grafia aproximada. Quando houver vários produtos parecidos na lista (ex.: vários começando com "OXFORD"), escolha o que MELHOR corresponde ao texto, não todos. Só inclua um produto se houver razoável certeza de que ele aparece de fato no texto.
+O texto foi extraído de um PDF e pode estar fragmentado: nomes quebrados em linhas, com códigos numéricos, medidas (1,47 L) e composição (100% Poliéster) ao redor. Ignore códigos/números/medidas e junte as partes do nome. Compare por significado (aceite abreviação, ordem trocada, sem acento). Entre produtos parecidos, escolha o que melhor corresponde.
 
 TEXTO:
 """
 ${texto}
 """
 
-PRODUTOS CADASTRADOS (id | nome):
+LISTA:
 ${lista}
 
-Responda SOMENTE com um JSON no formato {"ids": ["..."]} contendo os ids dos produtos cadastrados que aparecem no texto. Se nenhum aparecer, responda {"ids": []}.`;
+Responda SOMENTE com JSON no formato {"n": [números dos produtos que aparecem]}. Ex.: {"n": [1, 4]}. Se nenhum, {"n": []}.`;
 
   const params = {
     model: MODELO,
     messages: [{ role: "user", content: prompt }],
     response_format: { type: "json_object" },
     temperature: 0,
-    reasoning_effort: "medium",
+    reasoning_effort: "low",
     reasoning_format: "hidden",
   } as unknown as Parameters<typeof groq.chat.completions.create>[0];
 
@@ -133,6 +124,22 @@ Responda SOMENTE com um JSON no formato {"ids": ["..."]} contendo os ids dos pro
   const conteudo =
     "choices" in resp ? (resp.choices[0]?.message?.content ?? "{}") : "{}";
 
-  const validos = new Set(candidatos.map((p) => p.id));
-  return parseIds(conteudo, validos);
+  // parseia os números e converte de volta pros ids
+  let numeros: number[] = [];
+  try {
+    const match = conteudo.match(/\{[\s\S]*\}/);
+    const parsed = JSON.parse(match ? match[0] : conteudo);
+    if (Array.isArray(parsed.n)) {
+      numeros = parsed.n.filter((x: unknown): x is number => typeof x === "number");
+    }
+  } catch {
+    return [];
+  }
+
+  const ids: string[] = [];
+  for (const n of numeros) {
+    const id = porIndice.get(n);
+    if (id) ids.push(id);
+  }
+  return ids;
 }
