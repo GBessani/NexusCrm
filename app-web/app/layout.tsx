@@ -13,7 +13,7 @@ const jetbrains = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "PDFinder",
+  title: "Nexus",
   description: "Avise seus clientes assim que o artigo chega.",
 };
 

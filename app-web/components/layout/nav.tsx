@@ -1,51 +1,33 @@
-"use client";
+import type { Metadata } from "next";
+import { Inter, Bricolage_Grotesque, JetBrains_Mono } from "next/font/google";
+import "./globals.css";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { LogoutButton } from "./logout-button";
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+const bricolage = Bricolage_Grotesque({
+  subsets: ["latin"],
+  variable: "--font-bricolage",
+});
+const jetbrains = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-jetbrains",
+});
 
-const links = [
-  { href: "/", label: "Início" },
-  { href: "/produtos", label: "Produtos" },
-  { href: "/contatos", label: "Contatos" },
-  { href: "/importar", label: "Importar" },
-  { href: "/notificacoes", label: "Avisos" },
-  { href: "/conexao", label: "Conexão" },
-];
+export const metadata: Metadata = {
+  title: "Nexus",
+  description: "Avise seus clientes assim que o artigo chega.",
+};
 
-export function Nav() {
-  const path = usePathname();
-
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <header className="border-b border-line bg-surface">
-      <div className="mx-auto flex max-w-5xl items-center gap-4 px-5 py-3">
-        <Link
-          href="/"
-          className="font-display text-lg font-semibold tracking-tight text-brand"
-        >
-          PDFinder
-        </Link>
-        <nav className="flex flex-1 items-center gap-1 overflow-x-auto">
-          {links.map((l) => {
-            const ativo =
-              l.href === "/" ? path === "/" : path.startsWith(l.href);
-            return (
-              <Link
-                key={l.href}
-                href={l.href}
-                className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition ${
-                  ativo
-                    ? "bg-accent-soft text-brand"
-                    : "text-muted hover:text-ink"
-                }`}
-              >
-                {l.label}
-              </Link>
-            );
-          })}
-        </nav>
-        <LogoutButton />
-      </div>
-    </header>
+    <html
+      lang="pt-br"
+      className={`${inter.variable} ${bricolage.variable} ${jetbrains.variable}`}
+    >
+      <body>{children}</body>
+    </html>
   );
 }

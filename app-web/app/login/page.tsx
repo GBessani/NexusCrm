@@ -64,7 +64,7 @@ export default function LoginPage() {
       {/* painel da marca (assinatura: trama textil) */}
       <aside className="trama relative hidden flex-col justify-between bg-brand p-12 text-white lg:flex">
         <div className="font-display text-xl font-semibold tracking-tight">
-          PDFinder
+          Nexus
         </div>
         <div className="max-w-sm">
           <p className="font-display text-4xl font-semibold leading-tight">
@@ -87,7 +87,7 @@ export default function LoginPage() {
         <div className="w-full max-w-sm">
           <div className="mb-8 lg:hidden">
             <span className="font-display text-xl font-semibold tracking-tight text-brand">
-              PDFinder
+              Nexus
             </span>
           </div>
 
