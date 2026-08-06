@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/client'
-import type { Produto, Contato, ContatoComDesejos } from '@/lib/types'
+import type { Produto, Contato, ContatoComDesejos, NotificacaoStatus } from '@/lib/types'
 
 async function requireUserId(): Promise<string> {
   const supabase = createClient()
@@ -165,4 +165,44 @@ export async function contatosQueDesejam(
   return (data ?? [])
     .map((w: any) => w.contatos)
     .filter((c: Contato | null): c is Contato => !!c && c.opt_in)
+}
+
+// =====================================================================
+// NOTIFICAÇÕES (histórico de avisos)
+
+export type AvisoHistorico = {
+  id: string
+  status: NotificacaoStatus
+  pdf_origem: string | null
+  enviado_em: string | null
+  created_at: string
+  contato_nome: string | null
+  produto_nome: string | null
+}
+
+export async function listarNotificacoes(limite = 200): Promise<AvisoHistorico[]> {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('notificacoes')
+    .select('id, status, pdf_origem, enviado_em, created_at, contatos(nome), produtos(nome)')
+    .order('created_at', { ascending: false })
+    .limit(limite)
+  if (error) throw error
+  return (data ?? []).map((n: {
+    id: string
+    status: NotificacaoStatus
+    pdf_origem: string | null
+    enviado_em: string | null
+    created_at: string
+    contatos: { nome: string } | null
+    produtos: { nome: string } | null
+  }) => ({
+    id: n.id,
+    status: n.status,
+    pdf_origem: n.pdf_origem,
+    enviado_em: n.enviado_em,
+    created_at: n.created_at,
+    contato_nome: n.contatos?.nome ?? null,
+    produto_nome: n.produtos?.nome ?? null,
+  }))
 }
