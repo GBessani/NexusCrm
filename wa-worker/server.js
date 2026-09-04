@@ -17,6 +17,7 @@ const AUTH_DIR = process.env.AUTH_DIR || 'auth_info' // aponte pro volume persis
 let sock
 let isReady = false
 let lastQR = null
+const contatos = new Map() // jid -> { numero, nome }
 
 async function startSock() {
   const { state, saveCreds } = await useMultiFileAuthState(AUTH_DIR)
@@ -34,6 +35,27 @@ async function startSock() {
 
   sock.ev.on('creds.update', saveCreds)
 
+  // captura a lista de contatos conforme o WhatsApp envia
+  function registrarContatos(lista) {
+    for (const c of lista || []) {
+      const jid = c.id || ''
+      // só contatos individuais (ignora grupos @g.us e broadcast)
+      if (!jid.endsWith('@s.whatsapp.net')) continue
+      const numero = jid.split('@')[0]
+      if (!/^\d{8,15}$/.test(numero)) continue
+      const nome = c.name || c.notify || c.verifiedName || null
+      const existente = contatos.get(jid)
+      // mantém o melhor nome que já tivermos
+      contatos.set(jid, { numero, nome: nome || existente?.nome || null })
+    }
+  }
+
+  sock.ev.on('contacts.upsert', registrarContatos)
+  sock.ev.on('contacts.update', registrarContatos)
+  sock.ev.on('messaging-history.set', ({ contacts }) => {
+    if (contacts) registrarContatos(contacts)
+  })
+
   sock.ev.on('connection.update', (update) => {
     const { connection, lastDisconnect, qr } = update
 
@@ -50,6 +72,7 @@ async function startSock() {
 
     if (connection === 'close') {
       isReady = false
+      contatos.clear()
       const code = new Boom(lastDisconnect?.error)?.output?.statusCode
       const deslogado = code === DisconnectReason.loggedOut
       console.log(`⚠️  Conexão fechada (code ${code}).`)
@@ -188,6 +211,15 @@ app.post('/send-doc', requireAuth, async (req, res) => {
     console.error('Erro ao enviar documento:', err)
     res.status(500).json({ error: 'falha ao enviar documento' })
   }
+})
+
+// lista os contatos capturados do WhatsApp (para importar no Nexus)
+app.get('/contatos', requireAuth, (req, res) => {
+  if (!isReady) return res.status(503).json({ error: 'whatsapp não conectado' })
+  const lista = Array.from(contatos.values())
+    .map((c) => ({ numero: c.numero, nome: c.nome }))
+    .sort((a, b) => (a.nome || a.numero).localeCompare(b.nome || b.numero))
+  res.json({ total: lista.length, contatos: lista })
 })
 
 app.listen(PORT, () => {

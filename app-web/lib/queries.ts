@@ -220,3 +220,40 @@ export async function marcarAtendimento(contatoId: string): Promise<string> {
   if (error) throw error
   return agora
 }
+
+// ===== ADICIONE esta função ao final de lib/queries.ts =====
+
+export type ContatoImportar = { nome: string; telefone: string }
+
+// importa vários contatos de uma vez; ignora telefones que já existem
+export async function importarContatos(
+  lista: ContatoImportar[]
+): Promise<{ inseridos: number }> {
+  const supabase = createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) throw new Error('não autenticado')
+
+  // telefones já cadastrados (pra não duplicar)
+  const { data: existentes } = await supabase
+    .from('contatos')
+    .select('telefone')
+  const jaTem = new Set((existentes ?? []).map((c) => c.telefone))
+
+  const novos = lista
+    .filter((c) => c.telefone && !jaTem.has(c.telefone))
+    .map((c) => ({
+      id: crypto.randomUUID(),
+      user_id: user.id,
+      nome: c.nome?.trim() || c.telefone,
+      telefone: c.telefone,
+      opt_in: true,
+    }))
+
+  if (novos.length === 0) return { inseridos: 0 }
+
+  const { error } = await supabase.from('contatos').insert(novos)
+  if (error) throw error
+  return { inseridos: novos.length }
+}
