@@ -27,9 +27,21 @@ export async function updateSession(request: NextRequest) {
   )
 
   // IMPORTANTE: nao colocar logica entre createServerClient e getUser()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  // Protege contra lentidao do Supabase: se demorar demais, nao derruba o app
+  // (evita 504 MIDDLEWARE_INVOCATION_TIMEOUT). Em caso de timeout, trata como
+  // "sem usuario confirmado" e deixa a navegacao seguir seu curso normal.
+  let user = null
+  try {
+    const resultado = await Promise.race([
+      supabase.auth.getUser(),
+      new Promise<{ data: { user: null } }>((resolve) =>
+        setTimeout(() => resolve({ data: { user: null } }), 4000)
+      ),
+    ])
+    user = resultado.data.user
+  } catch {
+    user = null
+  }
 
   // rotas publicas (sem login)
   const publicas = ['/login', '/auth']
