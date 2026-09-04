@@ -42,6 +42,7 @@ export type Database = {
           nome: string
           telefone: string
           opt_in: boolean
+          ultimo_atendimento: string | null
           created_at: string
         }
         Insert: {
@@ -50,6 +51,7 @@ export type Database = {
           nome: string
           telefone: string
           opt_in?: boolean
+          ultimo_atendimento?: string | null
           created_at?: string
         }
         Update: {
@@ -58,6 +60,7 @@ export type Database = {
           nome?: string
           telefone?: string
           opt_in?: boolean
+          ultimo_atendimento?: string | null
           created_at?: string
         }
         Relationships: []

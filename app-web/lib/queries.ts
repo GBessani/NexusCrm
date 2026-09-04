@@ -206,3 +206,17 @@ export async function listarNotificacoes(limite = 200): Promise<AvisoHistorico[]
     produto_nome: n.produtos?.nome ?? null,
   }))
 }
+// =====================================================================
+// CRM — atendimento
+
+// marca que o cliente foi atendido AGORA (zera o relógio dos 15 dias)
+export async function marcarAtendimento(contatoId: string): Promise<string> {
+  const supabase = createClient()
+  const agora = new Date().toISOString()
+  const { error } = await supabase
+    .from('contatos')
+    .update({ ultimo_atendimento: agora })
+    .eq('id', contatoId)
+  if (error) throw error
+  return agora
+}
