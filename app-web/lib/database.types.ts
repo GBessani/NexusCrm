@@ -41,6 +41,7 @@ export type Database = {
           user_id: string
           nome: string
           telefone: string
+          empresa: string | null
           opt_in: boolean
           ultimo_atendimento: string | null
           created_at: string
@@ -50,6 +51,7 @@ export type Database = {
           user_id: string
           nome: string
           telefone: string
+          empresa?: string | null
           opt_in?: boolean
           ultimo_atendimento?: string | null
           created_at?: string
@@ -59,6 +61,7 @@ export type Database = {
           user_id?: string
           nome?: string
           telefone?: string
+          empresa?: string | null
           opt_in?: boolean
           ultimo_atendimento?: string | null
           created_at?: string

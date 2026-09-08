@@ -72,7 +72,12 @@ export default function ContatosPage() {
       );
     }
     const q = busca.trim().toLowerCase();
-    if (q) lista = lista.filter((c) => c.nome.toLowerCase().includes(q));
+    if (q)
+      lista = lista.filter(
+        (c) =>
+          c.nome.toLowerCase().includes(q) ||
+          (c.empresa || "").toLowerCase().includes(q)
+      );
     return [...lista].sort((a, b) => {
       const sa = statusAtendimento(a.ultimo_atendimento);
       const sb = statusAtendimento(b.ultimo_atendimento);
@@ -171,6 +176,9 @@ export default function ContatosPage() {
                       )}
                     </div>
                     <p className="font-mono text-xs text-muted">+{c.telefone}</p>
+                    {c.empresa && (
+                      <p className="truncate text-xs text-muted">{c.empresa}</p>
+                    )}
                     <p
                       className={`mt-0.5 text-xs ${
                         pendente ? "text-red-600" : "text-muted"

@@ -35,6 +35,7 @@ export function WishlistEditor({
   const [nome, setNome] = useState(contato.nome);
   const [telefone, setTelefone] = useState(contato.telefone);
   const [optIn, setOptIn] = useState(contato.opt_in);
+  const [empresa, setEmpresa] = useState(contato.empresa || "");
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
@@ -66,6 +67,7 @@ export function WishlistEditor({
     setErro(null);
     try {
       await atualizarContato(contato.id, {
+        empresa: empresa.trim() || null,
         nome: nome.trim(),
         telefone: normalizarTelBR(telefone),
         opt_in: optIn,
@@ -113,6 +115,12 @@ export function WishlistEditor({
                   inputMode="tel"
                   className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm outline-none focus:border-brand"
                 />
+                <input
+                  value={empresa}
+                  onChange={(e) => setEmpresa(e.target.value)}
+                  placeholder="Empresa (opcional)"
+                  className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm outline-none focus:border-brand"
+                />
                 <label className="flex items-center gap-2 text-xs text-muted">
                   <input
                     type="checkbox"
@@ -136,6 +144,7 @@ export function WishlistEditor({
                       setEditandoDados(false);
                       setNome(contato.nome);
                       setTelefone(contato.telefone);
+                      setEmpresa(contato.empresa || "");
                       setOptIn(contato.opt_in);
                       setErro(null);
                     }}

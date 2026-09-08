@@ -18,6 +18,7 @@ export function ContatoForm({
 }) {
   const [nome, setNome] = useState("");
   const [telefone, setTelefone] = useState("");
+  const [empresa, setEmpresa] = useState("");
   const [optIn, setOptIn] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
@@ -31,11 +32,13 @@ export function ContatoForm({
       const c = await criarContato({
         nome,
         telefone: normalizarTelBR(telefone),
+        empresa,
         opt_in: optIn,
       });
       onCriado(c);
       setNome("");
       setTelefone("");
+      setEmpresa("");
       setOptIn(true);
     } catch (err) {
       const code = (err as { code?: string })?.code;
@@ -78,6 +81,18 @@ export function ContatoForm({
             className="w-full rounded-lg border border-line bg-surface px-3 py-2.5 text-sm outline-none transition focus:border-brand"
           />
         </div>
+      </div>
+
+      <div className="mt-3">
+        <label className="mb-1 block text-xs font-medium text-muted">
+          Empresa (opcional)
+        </label>
+        <input
+          value={empresa}
+          onChange={(e) => setEmpresa(e.target.value)}
+          placeholder="Mega Malhas"
+          className="w-full rounded-lg border border-line bg-surface px-3 py-2.5 text-sm outline-none transition focus:border-brand"
+        />
       </div>
 
       <label className="mt-3 flex items-center gap-2 text-sm text-muted">

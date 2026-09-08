@@ -66,6 +66,7 @@ export async function listarContatos(): Promise<Contato[]> {
 export async function criarContato(input: {
   nome: string
   telefone: string
+  empresa?: string | null
   opt_in?: boolean
 }): Promise<Contato> {
   const supabase = createClient()
@@ -76,6 +77,7 @@ export async function criarContato(input: {
       id: crypto.randomUUID(),
       user_id,
       nome: input.nome.trim(),
+      empresa: input.empresa?.trim() || null,
       telefone: input.telefone.replace(/\D/g, ''), // so digitos
       opt_in: input.opt_in ?? true,
     })
@@ -87,7 +89,7 @@ export async function criarContato(input: {
 
 export async function atualizarContato(
   id: string,
-  patch: Partial<Pick<Contato, 'nome' | 'telefone' | 'opt_in'>>
+  patch: Partial<Pick<Contato, 'nome' | 'telefone' | 'opt_in' | 'empresa'>>
 ): Promise<void> {
   const supabase = createClient()
   const clean = { ...patch }
