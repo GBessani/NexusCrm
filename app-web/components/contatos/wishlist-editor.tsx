@@ -36,6 +36,8 @@ export function WishlistEditor({
   const [telefone, setTelefone] = useState(contato.telefone);
   const [optIn, setOptIn] = useState(contato.opt_in);
   const [empresa, setEmpresa] = useState(contato.empresa || "");
+  const [usaMais3, setUsaMais3] = useState(contato.usa_mais3);
+  const [desconto, setDesconto] = useState(String(contato.desconto ?? 0));
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
@@ -71,6 +73,8 @@ export function WishlistEditor({
         nome: nome.trim(),
         telefone: normalizarTelBR(telefone),
         opt_in: optIn,
+        usa_mais3: usaMais3,
+        desconto: desconto ? parseFloat(desconto.replace(",", ".")) : 0,
       });
       setEditandoDados(false);
     } catch (err) {
@@ -124,6 +128,27 @@ export function WishlistEditor({
                 <label className="flex items-center gap-2 text-xs text-muted">
                   <input
                     type="checkbox"
+                    checked={usaMais3}
+                    onChange={(e) => setUsaMais3(e.target.checked)}
+                    className="h-4 w-4 accent-[var(--color-brand)]"
+                  />
+                  Usa tabela +3%
+                </label>
+                <div>
+                  <label className="mb-1 block text-xs text-muted">
+                    Desconto (%)
+                  </label>
+                  <input
+                    value={desconto}
+                    onChange={(e) => setDesconto(e.target.value)}
+                    placeholder="0"
+                    inputMode="decimal"
+                    className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm outline-none focus:border-brand"
+                  />
+                </div>
+                <label className="flex items-center gap-2 text-xs text-muted">
+                  <input
+                    type="checkbox"
                     checked={optIn}
                     onChange={(e) => setOptIn(e.target.checked)}
                     className="h-4 w-4 accent-[var(--color-brand)]"
@@ -145,6 +170,8 @@ export function WishlistEditor({
                       setNome(contato.nome);
                       setTelefone(contato.telefone);
                       setEmpresa(contato.empresa || "");
+                      setUsaMais3(contato.usa_mais3);
+                      setDesconto(String(contato.desconto ?? 0));
                       setOptIn(contato.opt_in);
                       setErro(null);
                     }}

@@ -44,6 +44,8 @@ export type Database = {
           empresa: string | null
           opt_in: boolean
           ultimo_atendimento: string | null
+          usa_mais3: boolean
+          desconto: number
           created_at: string
         }
         Insert: {
@@ -54,6 +56,8 @@ export type Database = {
           empresa?: string | null
           opt_in?: boolean
           ultimo_atendimento?: string | null
+          usa_mais3?: boolean
+          desconto?: number
           created_at?: string
         }
         Update: {
@@ -64,6 +68,8 @@ export type Database = {
           empresa?: string | null
           opt_in?: boolean
           ultimo_atendimento?: string | null
+          usa_mais3?: boolean
+          desconto?: number
           created_at?: string
         }
         Relationships: []

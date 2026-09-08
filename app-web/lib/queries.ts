@@ -68,6 +68,8 @@ export async function criarContato(input: {
   telefone: string
   empresa?: string | null
   opt_in?: boolean
+  usa_mais3?: boolean
+  desconto?: number
 }): Promise<Contato> {
   const supabase = createClient()
   const user_id = await requireUserId()
@@ -80,6 +82,8 @@ export async function criarContato(input: {
       empresa: input.empresa?.trim() || null,
       telefone: input.telefone.replace(/\D/g, ''), // so digitos
       opt_in: input.opt_in ?? true,
+      usa_mais3: input.usa_mais3 ?? false,
+      desconto: input.desconto ?? 0,
     })
     .select()
     .single()
@@ -89,7 +93,7 @@ export async function criarContato(input: {
 
 export async function atualizarContato(
   id: string,
-  patch: Partial<Pick<Contato, 'nome' | 'telefone' | 'opt_in' | 'empresa'>>
+  patch: Partial<Pick<Contato, 'nome' | 'telefone' | 'opt_in' | 'empresa' | 'usa_mais3' | 'desconto'>>
 ): Promise<void> {
   const supabase = createClient()
   const clean = { ...patch }
