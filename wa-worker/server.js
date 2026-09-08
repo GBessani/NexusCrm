@@ -35,25 +35,37 @@ async function startSock() {
 
   sock.ev.on('creds.update', saveCreds)
 
-  // captura a lista de contatos conforme o WhatsApp envia
-  function registrarContatos(lista) {
+  // ---- captura de contatos (várias fontes, porque o WhatsApp é irregular) ----
+  function registrar(fonte, lista) {
+    let novos = 0
     for (const c of lista || []) {
-      const jid = c.id || ''
-      // só contatos individuais (ignora grupos @g.us e broadcast)
+      const jid = c.id || c.jid || ''
       if (!jid.endsWith('@s.whatsapp.net')) continue
       const numero = jid.split('@')[0]
       if (!/^\d{8,15}$/.test(numero)) continue
-      const nome = c.name || c.notify || c.verifiedName || null
+      const nome = c.name || c.notify || c.verifiedName || c.pushName || null
       const existente = contatos.get(jid)
-      // mantém o melhor nome que já tivermos
+      if (!existente) novos++
       contatos.set(jid, { numero, nome: nome || existente?.nome || null })
+    }
+    if (novos > 0) {
+      console.log(`👥 [${fonte}] +${novos} contatos (total: ${contatos.size})`)
     }
   }
 
-  sock.ev.on('contacts.upsert', registrarContatos)
-  sock.ev.on('contacts.update', registrarContatos)
-  sock.ev.on('messaging-history.set', ({ contacts }) => {
-    if (contacts) registrarContatos(contacts)
+  sock.ev.on('contacts.upsert', (c) => registrar('upsert', c))
+  sock.ev.on('contacts.update', (c) => registrar('update', c))
+  sock.ev.on('messaging-history.set', ({ contacts }) => registrar('history', contacts))
+  // mensagens que chegam também revelam contatos (pushName)
+  sock.ev.on('messages.upsert', ({ messages }) => {
+    const derivados = (messages || [])
+      .map((m) => ({ id: m.key?.remoteJid, name: m.pushName }))
+      .filter((x) => x.id)
+    registrar('msg', derivados)
+  })
+  // chats também trazem jids de contatos
+  sock.ev.on('chats.upsert', (chats) => {
+    registrar('chats', (chats || []).map((ch) => ({ id: ch.id, name: ch.name })))
   })
 
   sock.ev.on('connection.update', (update) => {
@@ -68,6 +80,7 @@ async function startSock() {
       isReady = true
       lastQR = null
       console.log('✅ Conectado ao WhatsApp')
+      console.log('   Aguardando o WhatsApp enviar os contatos... (pode levar minutos)')
     }
 
     if (connection === 'close') {
@@ -213,7 +226,6 @@ app.post('/send-doc', requireAuth, async (req, res) => {
   }
 })
 
-// lista os contatos capturados do WhatsApp (para importar no Nexus)
 app.get('/contatos', requireAuth, (req, res) => {
   if (!isReady) return res.status(503).json({ error: 'whatsapp não conectado' })
   const lista = Array.from(contatos.values())
