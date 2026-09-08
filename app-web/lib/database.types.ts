@@ -19,18 +19,24 @@ export type Database = {
           id: string
           user_id: string
           nome: string
+          codigo: string | null
+          preco: number | null
           created_at: string
         }
         Insert: {
           id?: string
           user_id: string
           nome: string
+          codigo?: string | null
+          preco?: number | null
           created_at?: string
         }
         Update: {
           id?: string
           user_id?: string
           nome?: string
+          codigo?: string | null
+          preco?: number | null
           created_at?: string
         }
         Relationships: []

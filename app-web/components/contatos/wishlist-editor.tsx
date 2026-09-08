@@ -7,6 +7,7 @@ import {
   atualizarContato,
 } from "@/lib/queries";
 import type { Contato, Produto } from "@/lib/types";
+import { TabelaPrecos } from "./tabela-precos";
 
 function normalizarTelBR(input: string): string {
   const d = input.replace(/\D/g, "");
@@ -29,6 +30,7 @@ export function WishlistEditor({
     new Set(desejosIniciais)
   );
   const [busca, setBusca] = useState("");
+  const [verPrecos, setVerPrecos] = useState(false);
 
   // edição dos dados do contato
   const [editandoDados, setEditandoDados] = useState(false);
@@ -102,6 +104,13 @@ export function WishlistEditor({
         className="flex max-h-[85dvh] w-full max-w-md flex-col rounded-t-2xl bg-surface sm:rounded-2xl"
         onClick={(e) => e.stopPropagation()}
       >
+        {verPrecos && (
+          <TabelaPrecos
+            contato={contato}
+            produtos={produtos}
+            onFechar={() => setVerPrecos(false)}
+          />
+        )}
         <header className="flex items-start justify-between border-b border-line p-5">
           <div className="min-w-0 flex-1">
             {editandoDados ? (
@@ -190,12 +199,20 @@ export function WishlistEditor({
                   {nome}
                 </h2>
                 <p className="font-mono text-xs text-muted">+{telefone}</p>
-                <button
-                  onClick={() => setEditandoDados(true)}
-                  className="mt-1 text-xs font-medium text-brand"
-                >
-                  Editar dados
-                </button>
+                <div className="mt-1 flex gap-3">
+                  <button
+                    onClick={() => setEditandoDados(true)}
+                    className="text-xs font-medium text-brand"
+                  >
+                    Editar dados
+                  </button>
+                  <button
+                    onClick={() => setVerPrecos(true)}
+                    className="text-xs font-medium text-accent"
+                  >
+                    Ver tabela de preços
+                  </button>
+                </div>
               </>
             )}
           </div>
